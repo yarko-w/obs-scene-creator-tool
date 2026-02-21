@@ -22,11 +22,32 @@ PTZ Control:
 import json
 import uuid
 import os
+import sys
 import threading
 import urllib.request
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
 from copy import deepcopy
+
+# ── Windows admin elevation ─────────────────────────────────────────────────
+# If not running as admin on Windows, relaunch the process with elevation.
+# This is required to write to C:\Program Files (x86)\KH Switcher\Stingers.
+def _require_admin():
+    if sys.platform != "win32":
+        return  # Only relevant on Windows
+    try:
+        import ctypes
+        if ctypes.windll.shell32.IsUserAnAdmin():
+            return  # Already admin, nothing to do
+        # Relaunch with admin rights via ShellExecute runas verb
+        ctypes.windll.shell32.ShellExecuteW(
+            None, "runas", sys.executable, " ".join(f'"{a}"' for a in sys.argv), None, 1
+        )
+        sys.exit(0)  # Exit the non-elevated instance
+    except Exception:
+        pass  # If elevation fails, continue anyway and let the download error handle it
+
+_require_admin()
 
 # ── Shared canvas UUID used by OBS for default canvas ──────────────────────
 DEFAULT_CANVAS_UUID = "6c69626f-6273-4c00-9d88-c5136d61696e"
@@ -224,13 +245,15 @@ def build_obs_json(collection_name: str, camera_ip: str, video_device: str, pres
         scene_order.append({"name": "Black"})
 
     # ── Build transitions list based on selected transition ──────────────────
+    STINGER_PATH = r"C:\Program Files (x86)\KH Switcher\Stingers\Stinger120 Quick.mov"
     TRANSITION_DEFS = {
         "Stinger": {
             "name": "Stinger",
             "id": "obs_stinger_transition",
             "settings": {
                 "transition_point_type": 0,  # 0 = time-based
-                "transition_point": 800       # 800ms
+                "transition_point": 800,      # 800ms
+                "path": STINGER_PATH
             }
         },
         "Fade":    {"name": "Fade", "id": "fade_transition", "settings": {}},
