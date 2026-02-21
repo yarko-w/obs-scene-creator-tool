@@ -6,6 +6,9 @@ on:
       - 'v*'          # Triggers on version tags like v1.0, v1.5.2 etc
   workflow_dispatch:  # Also allows manual trigger from GitHub UI
 
+permissions:
+  contents: write     # Required to create releases and upload assets
+
 jobs:
   build-x64:
     name: Build (Windows x64)
