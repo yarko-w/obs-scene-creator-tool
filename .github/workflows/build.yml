@@ -1,3 +1,56 @@
+name: Build Windows App EXE
+
+on:
+  push:
+    tags:
+      - 'v*'          # Triggers on version tags like v1.0, v1.5.2, etc.
+  workflow_dispatch:  # Also allows manual trigger from GitHub UI
+
+permissions:
+  contents: write     # Required to create releases and upload assets
+
+jobs:
+  build:
+    name: Build (Windows x64)
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 9
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+          # ModernWpf.Controls requires net9.0-windows
+
+      - name: Restore dependencies
+        run: dotnet restore OBSSceneGenerator/OBSSceneGenerator.csproj
+
+      - name: Publish single-file EXE
+        run: >
+          dotnet publish OBSSceneGenerator/OBSSceneGenerator.csproj
+          --configuration Release
+          --runtime win-x64
+          --self-contained true
+          -p:PublishSingleFile=true
+          -p:EnableCompressionInSingleFile=true
+          -p:DebugType=None
+          -p:DebugSymbols=false
+          --output dist
+
+      - name: Upload EXE as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: OBS-Scene-Generator-x64
+          path: dist/OBS_Scene_Generator.exe
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/OBS_Scene_Generator.exe
+          generate_release_notes: true
 name: Build Windows EXE
 
 on:
