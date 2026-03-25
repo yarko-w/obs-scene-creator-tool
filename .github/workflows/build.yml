@@ -1,4 +1,4 @@
-name: Build Windows App EXE
+name: Build Windows EXE
 
 on:
   push:
@@ -38,50 +38,6 @@ jobs:
           -p:DebugType=None
           -p:DebugSymbols=false
           --output dist
-
-      - name: Upload EXE as artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: OBS-Scene-Generator-x64
-          path: dist/OBS_Scene_Generator.exe
-
-      - name: Create GitHub Release
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v2
-        with:
-          files: dist/OBS_Scene_Generator.exe
-          generate_release_notes: true
-name: Build Windows EXE
-
-on:
-  push:
-    tags:
-      - 'v*'          # Triggers on version tags like v1.0, v1.5.2 etc
-  workflow_dispatch:  # Also allows manual trigger from GitHub UI
-
-permissions:
-  contents: write     # Required to create releases and upload assets
-
-jobs:
-  build-x64:
-    name: Build (Windows x64)
-    runs-on: windows-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-
-      - name: Install PyInstaller
-        run: pip install pyinstaller
-
-      - name: Build EXE
-        run: |
-          pyinstaller --onefile --windowed --name "OBS_Scene_Generator" obs_scene_generator.py
 
       - name: Upload EXE as artifact
         uses: actions/upload-artifact@v4
