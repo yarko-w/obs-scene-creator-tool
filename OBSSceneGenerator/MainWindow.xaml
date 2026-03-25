@@ -1,0 +1,229 @@
+<Window
+    x:Class="OBSSceneGenerator.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:models="clr-namespace:OBSSceneGenerator.Models"
+    Title="OBS Scene Collection Generator"
+    Width="920"
+    MinWidth="800"
+    Height="720"
+    MinHeight="520"
+    ResizeMode="CanResizeWithGrip"
+    WindowStartupLocation="CenterScreen"
+    Background="{StaticResource WindowBg}"
+    Foreground="{StaticResource TextPrimary}"
+    FontFamily="Segoe UI">
+
+    <DockPanel Margin="24,20,24,20">
+
+        <!-- ── Header (full width, docked top) ───────────────────────────── -->
+        <StackPanel DockPanel.Dock="Top" Margin="0,0,0,16">
+            <TextBlock Text="OBS Scene Creator Tool"
+                       FontSize="22" FontWeight="SemiBold"
+                       Foreground="{StaticResource TextPrimary}"/>
+            <TextBlock Text="Create scenes for Media and PTZ Cameras compatible with KH Video Switcher"
+                       Foreground="{StaticResource TextMuted}" TextWrapping="Wrap" Margin="0,2,0,0"/>
+        </StackPanel>
+
+        <!-- ── Two-column body ────────────────────────────────────────────── -->
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" MinWidth="300"/>
+                <ColumnDefinition Width="16"/>
+                <ColumnDefinition Width="1.2*" MinWidth="340"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- ════════════ LEFT PANEL — Settings ════════════════════════ -->
+            <Border Grid.Column="0"
+                    Background="{StaticResource CardBg}"
+                    BorderBrush="{StaticResource SeparatorBg}"
+                    BorderThickness="1"
+                    CornerRadius="8"
+                    Padding="20,16">
+                <DockPanel>
+
+                    <!-- Generate button pinned at bottom -->
+                    <StackPanel DockPanel.Dock="Bottom">
+                        <StackPanel x:Name="ProgressPanel" Visibility="Collapsed" Margin="0,0,0,8">
+                            <TextBlock x:Name="ProgressLabel" Text="Downloading stinger file…"
+                                       Foreground="{StaticResource TextMuted}" FontSize="12" Margin="0,0,0,4"/>
+                            <ProgressBar x:Name="DownloadProgressBar" Minimum="0" Maximum="100" Value="0" Height="4"/>
+                        </StackPanel>
+                        <Button x:Name="GenerateButton"
+                                Content="Generate &amp; Save Collection"
+                                Style="{StaticResource AccentButton}"
+                                HorizontalAlignment="Stretch"
+                                ToolTip="Saves the OBS scene collection JSON file and downloads the stinger video if selected"
+                                Click="GenerateButton_Click"/>
+                    </StackPanel>
+
+                    <!-- Scrollable settings area -->
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="0,0,0,12">
+                        <StackPanel>
+
+                            <!-- Collection Name -->
+                            <TextBlock Text="Scene Collection Name" Foreground="{StaticResource TextMuted}"
+                                       FontSize="11" FontWeight="SemiBold" Margin="0,0,0,4"
+                                       ToolTip="The name that appears in OBS under Scene Collection"/>
+                            <TextBox x:Name="CollectionNameBox" Text="My PTZ Collection" Margin="0,0,0,12"
+                                     ToolTip="This name will appear in OBS Studio under Scene Collection. Choose something descriptive like the venue or camera name."/>
+
+                            <!-- Camera IP -->
+                            <TextBlock Text="Camera IP Address" Foreground="{StaticResource TextMuted}"
+                                       FontSize="11" FontWeight="SemiBold" Margin="0,0,0,4"
+                                       ToolTip="The local network IP address of your PTZ camera"/>
+                            <TextBox x:Name="CameraIpBox" Text="192.168.1.100"
+                                     TextChanged="CameraIpBox_TextChanged" Margin="0,0,0,2"
+                                     ToolTip="Enter the IPv4 address of your PTZ camera on the local network (e.g. 192.168.1.100). You can find this in your camera's network settings or your router's device list."/>
+                            <TextBlock x:Name="UrlPreviewText" FontFamily="Consolas" FontSize="10"
+                                       Foreground="{StaticResource TextDisabled}" TextWrapping="Wrap"
+                                       Margin="0,0,0,12"
+                                       ToolTip="This is the HTTP command URL that OBS will use to move the camera. It updates live as you type the IP address."/>
+
+                            <!-- Number of Presets -->
+                            <TextBlock Text="Number of Camera Presets" Foreground="{StaticResource TextMuted}"
+                                       FontSize="11" FontWeight="SemiBold" Margin="0,0,0,4"
+                                       ToolTip="How many PTZ preset positions to create scenes for (1–20)"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,16" Height="28"
+                                        ToolTip="Each preset creates an OBS scene that moves the camera to that position when activated. Value must be between 1 and 20.">
+                                <TextBox x:Name="PresetCountBox" Text="3" Width="36"
+                                         TextAlignment="Center" Padding="2,2" FontSize="12"
+                                         PreviewTextInput="NumericOnly_PreviewTextInput"
+                                         TextChanged="PresetCountBox_TextChanged"/>
+                                <StackPanel Width="20">
+                                    <RepeatButton Style="{StaticResource SpinButton}" Content="▲" Height="14"
+                                                  Click="PresetCountUp_Click"/>
+                                    <RepeatButton Style="{StaticResource SpinButton}" Content="▼" Height="14"
+                                                  Click="PresetCountDown_Click"/>
+                                </StackPanel>
+                            </StackPanel>
+
+                            <Separator Margin="0,0,0,12"/>
+
+                            <!-- Optional scenes -->
+                            <CheckBox x:Name="IncludeMediaCheck" Content='Include "Media" scene'
+                                      IsChecked="True" Checked="SceneOptionChanged" Unchecked="SceneOptionChanged"
+                                      ToolTip="Adds a Media scene at the top of your scene list with a Display Capture source for showing presentations or a laptop screen"/>
+                            <TextBlock Margin="26,2,0,10" Foreground="{StaticResource TextMuted}" FontSize="11" TextWrapping="Wrap"
+                                       Text="Adds a Display Capture source. You'll select the display in OBS after import."/>
+
+                            <CheckBox x:Name="IncludeBlackCheck" Content='Include "Black" scene'
+                                      IsChecked="False" Checked="SceneOptionChanged" Unchecked="SceneOptionChanged"
+                                      ToolTip="Adds an empty Black scene at the end of the list. Transition to this scene with a Fade to create a clean fade-to-black effect."/>
+                            <TextBlock Margin="26,2,0,14" Foreground="{StaticResource TextMuted}" FontSize="11" TextWrapping="Wrap"
+                                       Text="Empty scene for fade-to-black transitions."/>
+
+                            <Separator Margin="0,0,0,12"/>
+
+                            <!-- Transition -->
+                            <TextBlock Text="Default Transition" Foreground="{StaticResource TextMuted}"
+                                       FontSize="11" FontWeight="SemiBold" Margin="0,0,0,8"
+                                       ToolTip="The transition effect OBS will use when switching between scenes"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                <RadioButton x:Name="StingerRadio" Content="Stinger" IsChecked="True" GroupName="Transition" Margin="0,0,16,0"
+                                             ToolTip="Uses a custom stinger video animation between scenes. The stinger file is automatically downloaded and configured with an 800ms transition point."/>
+                                <RadioButton x:Name="FadeRadio"    Content="Fade"    GroupName="Transition" Margin="0,0,16,0"
+                                             ToolTip="A standard crossfade dissolve between scenes"/>
+                                <RadioButton x:Name="CutRadio"     Content="Cut"     GroupName="Transition"
+                                             ToolTip="An instant cut with no transition effect between scenes"/>
+                            </StackPanel>
+                            <TextBlock Foreground="{StaticResource TextDisabled}" FontSize="10" TextWrapping="Wrap"
+                                       Text="Stinger auto-downloads to C:\Program Files (x86)\KH Switcher\Stingers"/>
+
+                        </StackPanel>
+                    </ScrollViewer>
+                </DockPanel>
+            </Border>
+
+            <!-- ════════════ RIGHT PANEL — Preset List ════════════════════ -->
+            <Border Grid.Column="2"
+                    Background="{StaticResource CardBg}"
+                    BorderBrush="{StaticResource SeparatorBg}"
+                    BorderThickness="1"
+                    CornerRadius="8"
+                    Padding="20,16">
+                <DockPanel>
+
+                    <!-- Column headers (pinned top) -->
+                    <Grid DockPanel.Dock="Top" Margin="0,0,0,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="36"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="90"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="#"          Foreground="{StaticResource TextMuted}" FontSize="11" FontWeight="SemiBold"
+                                   ToolTip="The order this scene appears in the OBS scene list"/>
+                        <TextBlock Text="Scene Name" Foreground="{StaticResource TextMuted}" FontSize="11" FontWeight="SemiBold" Grid.Column="1"
+                                   ToolTip="The name shown in the OBS scene list for this camera preset"/>
+                        <TextBlock Text="Position"   Foreground="{StaticResource TextMuted}" FontSize="11" FontWeight="SemiBold" Grid.Column="2"
+                                   ToolTip="The PTZ preset number stored on the camera (0–89 or 100–254)"/>
+                    </Grid>
+
+                    <!-- All rows scroll together -->
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <StackPanel>
+
+                            <!-- Fixed "Media" row -->
+                            <Grid x:Name="MediaRowGrid" Margin="0,0,0,4" Visibility="Visible"
+                                  ToolTip="The Media scene uses a Display Capture source for showing presentations or laptop screens. After importing into OBS, select the correct display in the source settings.">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="36"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="90"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock x:Name="MediaRowNumberText" Text="1" VerticalAlignment="Center"
+                                           Foreground="{StaticResource TextDisabled}"/>
+                                <TextBox Grid.Column="1" Text="Media" IsEnabled="False" Opacity="0.5" Margin="0,0,8,0"/>
+                                <TextBlock Grid.Column="2" Text="—" VerticalAlignment="Center"
+                                           Foreground="{StaticResource TextDisabled}" Margin="8,0,0,0"/>
+                            </Grid>
+
+                            <!-- Dynamic preset rows -->
+                            <ItemsControl x:Name="PresetItemsControl" ItemsSource="{Binding Presets}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate DataType="{x:Type models:PresetRow}">
+                                        <Grid Margin="0,0,0,4">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="36"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="90"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="{Binding RowNumber}" VerticalAlignment="Center"
+                                                       Foreground="{StaticResource TextMuted}"/>
+                                            <TextBox Grid.Column="1" Margin="0,0,8,0"
+                                                     Text="{Binding Name, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}"
+                                                     ToolTip="Give this scene a descriptive name (e.g. Wide, Podium, Close-up). This is the name you'll see in the OBS scene list."/>
+                                            <TextBox Grid.Column="2"
+                                                     Style="{StaticResource ErrorableTextBox}"
+                                                     Text="{Binding Position, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}"
+                                                     PreviewTextInput="NumericOnly_PreviewTextInput"
+                                                     ToolTip="The PTZ preset number stored on the camera. Valid values: 0–89 or 100–254. This must match a preset you've saved on the camera itself."/>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+
+                            <!-- Fixed "Black" row (flows after presets) -->
+                            <Grid x:Name="BlackRowGrid" Margin="0,4,0,0" Visibility="Collapsed"
+                                  ToolTip="The Black scene is empty — transition to it with a Fade to create a clean fade-to-black effect in your production.">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="36"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="90"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock x:Name="BlackRowNumberText" Text="5" VerticalAlignment="Center"
+                                           Foreground="{StaticResource TextDisabled}"/>
+                                <TextBox Grid.Column="1" Text="Black" IsEnabled="False" Opacity="0.5" Margin="0,0,8,0"/>
+                                <TextBlock Grid.Column="2" Text="—" VerticalAlignment="Center"
+                                           Foreground="{StaticResource TextDisabled}" Margin="8,0,0,0"/>
+                            </Grid>
+
+                        </StackPanel>
+                    </ScrollViewer>
+
+                </DockPanel>
+            </Border>
+
+        </Grid>
+    </DockPanel>
+</Window>
