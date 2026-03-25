@@ -13,6 +13,8 @@ jobs:
   build:
     name: Build (Windows x64)
     runs-on: windows-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
       - name: Checkout code
@@ -22,7 +24,6 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '9.0.x'
-          # ModernWpf.Controls requires net9.0-windows
 
       - name: Restore dependencies
         run: dotnet restore OBSSceneGenerator/OBSSceneGenerator.csproj
@@ -34,6 +35,7 @@ jobs:
           --runtime win-x64
           --self-contained true
           -p:PublishSingleFile=true
+          -p:IncludeNativeLibrariesForSelfExtract=true
           -p:EnableCompressionInSingleFile=true
           -p:DebugType=None
           -p:DebugSymbols=false
